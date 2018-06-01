@@ -6,33 +6,24 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
 public class Main {
-	
+
 	static ArrayList<Item> LoR = new ArrayList<Item>();	//List of Rules
 	static int NoOR=0;	//Number of Original Rules
 	static HashMap<String, String> C0 = new HashMap<String, String>();	//<String of Closure, Group num>
-	
-	public static ArrayList<Item> getItemStartsWith(char c){
-		ArrayList<Item> result = null;
-		Iterator<Item> iterator = LoR.iterator();
-		while(iterator.hasNext()) {
-			Item temp = iterator.next();
-			if(temp.left == (c+"") && temp.dotPos==0)
-				result.add(temp);
-		}
-		return result;
-	}
-	
+
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 		readFile();
 		addAugmentedProduction();
+		
 		findC0();
-		printC0();
+		//printC0();
 	}
 
 	static void readFile(){
@@ -41,7 +32,8 @@ public class Main {
 			BufferedReader in = new BufferedReader(new FileReader(input));
 			String line=null;
 			int numOfRules = 0;
-			while((line = in.readLine())!= null) {
+			while((line = in.readLine())!= null) {	//R#
+				line = in.readLine();				//actual rule
 				LoR.add(new Item(line));
 				numOfRules++;
 			}
@@ -60,13 +52,26 @@ public class Main {
 		LoR.add(0,new Item(r0));
 	}
 	static void findC0() {
-		Iterator<Item> it = LoR.iterator();
-		while(it.hasNext()) {
-			
-		}
+		ArrayList<Item> gTemp = new ArrayList<Item>();
+		Integer count=0;
+		Item iTemp = LoR.get(0);
+		//calculate closure of this item
+		iTemp.closure.add(iTemp);
+		if(iTemp.nextChar != '\0'  && iTemp.isNonTerminal(iTemp.nextChar)) 
+			iTemp.closure.addAll(iTemp.getItemsStartWith(iTemp.nextChar));
+		gTemp.addAll(iTemp.closure);
+		C0.put(iTemp.toStringClosure(), "i"+ count.toString());
+		count++;
+		System.out.println(iTemp.toStringClosure());
+//		Iterator<Character> gtIt = start.gotos.iterator();
+//		while(gtIt.hasNext()){
+//			gtIt.next()
+//		}
+
+		
 	}
 	static void printC0() {
-		
+
 		try {
 			File output = new File("output.txt");
 			BufferedWriter bw = new BufferedWriter(new FileWriter(output));
@@ -77,95 +82,93 @@ public class Main {
 					String closure = C0.get(key);
 				}
 			}
-			
-			
+
+
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 }
 
 /**
- * Ä¿³Î ¾ÆÀÌÅÛ°ú ¸®µà½º ¾ÆÀÌÅÛ ¸ğµÎ¸¦ ÀÇ¹Ì. 
- * ÅØ½ºÆ® ÀÚÃ¼¸¦ ÀúÀåÇÏÁø ¾ÊÀ½. 
- * Ãâ·Â½Ã¿¡¸¸ ÅØ½ºÆ®È­.
+ * ì»¤ë„ ì•„ì´í…œê³¼ ë¦¬ë“€ìŠ¤ ì•„ì´í…œ ëª¨ë‘ë¥¼ ì˜ë¯¸. 
+ * í…ìŠ¤íŠ¸ ìì²´ë¥¼ ì €ì¥í•˜ì§„ ì•ŠìŒ. 
+ * ì¶œë ¥ì‹œì—ë§Œ í…ìŠ¤íŠ¸í™”.
  */
 class Item{	
 	String left;
 	String right;
 	int dotPos;
+	char nextChar;
+	ArrayList<Item> closure;
+	Set<Character> gotos;
 	
 	Item(String line){
 		int divide = line.indexOf('>');
-		this.left = line.substring(0, divide-1);
+		this.left = line.substring(0, divide);
 		this.right = line.substring(divide+1);
 		this.dotPos=0;
+		this.nextChar = charAfterDot();
+		char l = this.getLeft();
+		closure = new ArrayList<Item>();
+		//calculate goto list
+//		Iterator<Item> iterator = this.closure.iterator();
+//		while(iterator.hasNext()){
+//			gotos.add(iterator.next().nextChar);
+//		}
 	}
-	Item(String left, String right, int dotPos){
-		this.left = left;
-		this.right = right;
-		this.dotPos = dotPos;
-	}
+	
 	char charAfterDot() {
-		if(dotPos == right.length())	//reduce itemÀÏ °æ¿ì null¹®ÀÚ 
+		if(dotPos == right.length())	//reduce itemì¼ ê²½ìš° nullë¬¸ì 
 			return '\0';
 		else
-			return right.charAt(dotPos);	//kernel itemÀÏ °æ¿ì ÇØ´ç ¹®ÀÚ
+			return right.charAt(dotPos);	//kernel itemì¼ ê²½ìš° í•´ë‹¹ ë¬¸ì
+	}
+	char getLeft(){
+		if(this.left.length() != 1){
+			return '\0';
+		}else
+			return this.left.charAt(0);
+	}
+	public ArrayList<Item> getItemsStartWith(char c){	//nonterminal ë§Œë‚¬ì„ ë•Œ í˜¸ì¶œ
+		ArrayList<Item> result = new ArrayList<Item>();
+		Iterator<Item> iterator = Main.LoR.iterator();
+		while(iterator.hasNext()) {
+			Item temp = iterator.next();
+			if(temp.getLeft() == c && temp.dotPos == 0){
+				result.add(temp);
+				if(temp.nextChar != temp.getLeft() )
+					result.addAll(getItemsStartWith(temp.nextChar));
+			}
+		}
+		return result;
 	}
 	public String toString() {
-		String result="[" + left + ">";
 		StringBuilder sb = new StringBuilder(right);
 		sb.insert(dotPos, '.');
-		result += (sb.toString()+"]");
+		String result="[" + left + "->" + sb.toString() + "]";
 		return result;
 	}
 	public boolean equals(Item that) {
 		if((this.left == that.left) && 
-		   (this.right == that.right) &&
-		   (this.dotPos == that.dotPos))
+				(this.right == that.right) &&
+				(this.dotPos == that.dotPos))
 			return true;
 		return false;
 	}
-	
+
 	static Item moveDot(Item item) {
-		if(item.dotPos == item.right.length()) {
+		if(item.dotPos == item.right.length()) {	//reduce item
 			return null;
-		}else {
+		}else {	//kernel item
 			Item newItem = item;
 			newItem.dotPos++;
 			return newItem;
 		}
 	}
-
-}
-
-/**
- * ¾ÆÀÌÅÛÀÇ closure 
- * arraylist of item 
- * Ãâ·Â½Ã¿¡¸¸ ÅØ½ºÆ®È­.
- */
-class Closure{
-	Item startItem;
-	ArrayList<Item> closure;
-	
-	Closure(Item item){	
-		this.startItem = item;
-		this.closure.add(item);
-		char c = item.charAfterDot();
-		
-		if(isNonTerminal(c)) 
-			closure.addAll(Main.getItemStartsWith(c));
-		
-	}
-	public boolean equals(Closure that) {
-		if(this.closure.equals(that.closure))
-			return true;
-		return false;
-	}
-	
-	public String toString() {
+	public String toStringClosure() {
 		String result = "";
 		Iterator<Item> iterator = closure.iterator();
 		while(iterator.hasNext()) {
@@ -177,12 +180,10 @@ class Closure{
 	
 	boolean isNonTerminal(char c) {
 		if (c >= 'A' && c <= 'Z')
-	        return true;
-	    else
-	        return false;
+			return true;
+		else
+			return false;
 	}
-	
-	
-	
-	
+
 }
+
