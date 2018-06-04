@@ -1,0 +1,140 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+
+public class LRParser {
+
+	static ArrayList<Item> listOfItem = new ArrayList<Item>();
+	static int numOfSet = 0;
+	HashMap<String, Integer> gotoMap = new HashMap<String, Integer>();
+	
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		readFile();
+		addAugmentedProduction();
+		
+		printC0();
+	}
+	
+	static void readFile(){
+		try {
+			File input = new File("rule.txt");
+			BufferedReader in = new BufferedReader(new FileReader(input));
+			String line=null;
+			while((line = in.readLine())!= null) {	//R#
+				line = in.readLine();				//actual rule
+				Item i = new Item(line);
+//				i.memberOf.add(0);
+				listOfItem.add(i);
+				Item temp = new Item(i);
+				while(temp.charAfterDot() != '\0') {
+					temp.dotPos++;
+					listOfItem.add(new Item(temp));
+				}
+			}
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} 
+	}
+	
+	static void addAugmentedProduction() {
+		Item r1 = listOfItem.get(0);
+		String r0 = "S`>"+r1.left;
+		listOfItem.add(0,new Item(r0));
+	}
+	
+	static void printC0() {
+		try {
+			File output = new File("output.txt");
+			BufferedWriter bw = new BufferedWriter(new FileWriter(output));
+			if(output.isFile() && output.canWrite()) {
+				Iterator<Item> it = listOfItem.iterator();
+				for(int i=0;i<=numOfSet;i++) {
+					System.out.println("I"+i);
+					bw.write("I"+i+'\n');
+					while(it.hasNext()) {
+						Item now = it.next();
+						if(now.memberOf.contains(i)) {
+							System.out.print(now.toString());
+							bw.write(now.toString());
+						}
+					}
+					bw.write("\n");
+				}
+				bw.close();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+}
+
+class Item{
+	String left;
+	String right;
+	int dotPos;
+	char nextChar;
+	ArrayList<Integer> memberOf = new ArrayList<Integer>();
+	
+	Item(String line){
+		int divide = line.indexOf('>');
+		this.left = line.substring(0, divide);
+		this.right = line.substring(divide+1);
+		this.dotPos=0;
+		this.nextChar = charAfterDot();
+	}
+	
+	@SuppressWarnings("unchecked")
+	Item(Item that){
+		this.left = that.left;
+		this.right = that.right;
+		this.dotPos = that.dotPos;
+		this.nextChar = that.nextChar;
+		this.memberOf = (ArrayList<Integer>)that.memberOf.clone();
+	}
+	
+	char charAfterDot() {
+		if(dotPos == right.length())	//reduce item일 경우 null문자 
+			return '\0';
+		else
+			return right.charAt(dotPos);	//kernel item일 경우 해당 문자
+	}
+	
+	char getLeft(){
+		if(this.left.length() != 1){
+			return '\0';
+		}else
+			return this.left.charAt(0);
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder(right);
+		sb.insert(dotPos, '.');
+		String result="[" + left + "->" + sb.toString() + "]";
+		return result;
+	}
+	
+	boolean isNonTerminal(char c) {
+		if (c >= 'A' && c <= 'Z')
+			return true;
+		else
+			return false;
+	}
+	
+	void findClosure() {
+		if()
+	}
+}
